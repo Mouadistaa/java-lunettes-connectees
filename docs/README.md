@@ -119,9 +119,9 @@ Il faudra expliquer votre format dans la documentation du projet.
 Pour passer commande, le client doit envoyer la liste des lunettes à fabriquer avec pour chacune la quantité désirée.
 Pour identifier les commandes, vous devrez générer un identifiant qui doit ête unique dans l'univers entier.
 
-| topic | sens | données | détails |
-| --- | :---: | --- | --- |
-| `orders/xxx` | → | La commande (liste des lunettes et quantité de chacune) | Passe une commande |
+| topic        | sens | données                                                 | détails            |
+|--------------|:----:|---------------------------------------------------------|--------------------|
+| `orders/xxx` |  →   | La commande (liste des lunettes et quantité de chacune) | Passe une commande |
 
 Le 'xxx' dans le nom de topic doit être remplacé par l'identifiant unique. Exemple : « order/42 ».
 Il est possible de commander 4 types de lunettes gérées par le fabricateur.
@@ -134,37 +134,37 @@ L'usine doit valider la commande avant de répondre :
 En cas de commande invalide, un évènement est envoyé au client. Ce dernier doit mettre fin à la transaction,
 aucune autre action ne devra être faite pour cette commande, et aucune autre évènement ne sera envoyé.
 
-| topic | sens | données | détails |
-| --- | :---: | :---: | --- |
-| `orders/xxx/validated` | ← | n/a | La commande est valide, et sera fabriquée dès que possible |
-| `orders/xxx/cancelled` | ← | Détail de l'erreur | La commande est incorrecte, et donc annulée |
+| topic                  | sens |      données       | détails                                                    |
+|------------------------|:----:|:------------------:|------------------------------------------------------------|
+| `orders/xxx/validated` |  ←   |        n/a         | La commande est valide, et sera fabriquée dès que possible |
+| `orders/xxx/cancelled` |  ←   | Détail de l'erreur | La commande est incorrecte, et donc annulée                |
 
 La livraison se fait par un dernier message qui mettre fin à la transaction.
 
-| topic | sens | données | détails |
-| --- | :---: | --- | --- |
-| `orders/xxx/delivery` | ← | La liste des lunettes produites (type + numéro de série | Fin de la commande |
+| topic                 | sens | données                                                 | détails            |
+|-----------------------|:----:|---------------------------------------------------------|--------------------|
+| `orders/xxx/delivery` |  ←   | La liste des lunettes produites (type + numéro de série | Fin de la commande |
 
 A tout moment, si une erreur survient pendant le traitment de la commande,
 il faut en avertir le client et mettre fin à la transaction.
 
-| topic | sens | données | détails |
-| --- | :---: | --- | --- |
-| `orders/xxx/error` | ← | La description de l'erreur |  |
+| topic              | sens | données                    | détails |
+|--------------------|:----:|----------------------------|---------|
+| `orders/xxx/error` |  ←   | La description de l'erreur |         |
 
 La validité d'un numéro de série peut être établie en utilisant un topic spécifique :
 
-| topic | sens | données | détails |
-| --- | :---: | :---: | --- |
-| `serials/xxx/check` | → | n/a |  |
-| `serials/xxx` | ← | Le type de lunette ou "invalid" |  |
+| topic               | sens |             données             | détails |
+|---------------------|:----:|:-------------------------------:|---------|
+| `serials/xxx/check` |  →   |               n/a               |         |
+| `serials/xxx`       |  ←   | Le type de lunette ou "invalid" |         |
 
 **Bonus** : il peut être agréable pour les clients de pouvoir suivre la progression
 de la commande. Vous pouvez implémenter cette focntionnalité grâce au sous-topic `/status`.
 
-| topic | sens | données | détails |
-| --- | :---: | :---: | --- |
-| `orders/xxx/status` | ← | Le nouveau statut de la commande | Liste des statut ci-dessous |
+| topic               | sens |             données              | détails                     |
+|---------------------|:----:|:--------------------------------:|-----------------------------|
+| `orders/xxx/status` |  ←   | Le nouveau statut de la commande | Liste des statut ci-dessous |
 
 Statut possibles de la commande :
 * `processing` : la fabrication a démarré
