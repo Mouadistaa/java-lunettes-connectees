@@ -11,7 +11,7 @@ Concretement, vous allez devoir développer deux composants :
 La communication entre l'application qui permet de passer commande et l'usine se fera
 [par évènement](https://aws.amazon.com/fr/what-is/eda/) donc de manière asychrone.
 
-### L'pplication JavaFX
+### L'application JavaFX
 
 L'application sera composée d'au moins 4 écrans :
 * un écran d'accueil qui présente l'application
