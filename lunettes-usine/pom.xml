@@ -34,4 +34,11 @@
         </dependency>
     </dependencies>
 
+    <distributionManagement>
+        <repository>
+            <id>github-publish</id>
+	    <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/Mouadistaa/java-lunettes-connectees</url>
+        </repository>
+    </distributionManagement>    
 </project>
