@@ -27,16 +27,8 @@ public final class UsineImpl implements Usine {
         if (aFabriquer.isEmpty()) {
             throw new UsineException("commande vide : aucune lunette à produire");
         }
-        if (aFabriquer.size() > fabricateur.getCapacity()) {
-            throw new UsineException(
-                    "commande de " + aFabriquer.size() + " lunettes dépasse la capacité "
-                            + "du fabricateur (" + fabricateur.getCapacity() + ") ; "
-                            + "le découpage multi-batch n'est pas encore supporté"
-            );
-        }
 
-        configurerFabricateur(aFabriquer);
-        return fabriquer(aFabriquer);
+        return produireParBatch(aFabriquer);
     }
 
     // aplatit la commande agrégée en une liste de types individuels
@@ -51,9 +43,35 @@ public final class UsineImpl implements Usine {
         return resultat;
     }
 
-    // configure le fabricateur avec les emplacements correspondant à la liste de types à fabriquer
-    private void configurerFabricateur(List<Fabricateur.TypeLunette> aFabriquer) {
-        Fabricateur.TypeLunette[] types = aFabriquer.toArray(new Fabricateur.TypeLunette[0]);
+    /**
+     * Découpe la liste à fabriquer en batchs de taille au plus égale à
+     * la capacité du fabricateur, et fabrique chaque batch
+     * séquentiellement.
+     */
+    private List<Fabricateur.Lunette> produireParBatch(List<Fabricateur.TypeLunette> aFabriquer) {
+        int capacite = fabricateur.getCapacity();
+        List<Fabricateur.Lunette> resultat = new ArrayList<>(aFabriquer.size());
+
+        for (int debut = 0; debut < aFabriquer.size(); debut += capacite) {
+            int fin = Math.min(debut + capacite, aFabriquer.size());
+            List<Fabricateur.TypeLunette> batch = aFabriquer.subList(debut, fin);
+            resultat.addAll(produireBatch(batch));
+        }
+
+        return resultat;
+    }
+
+    /**
+     * Configure le fabricateur avec les emplacements du batch et
+     * fabrique les lunettes correspondantes.
+     */
+    private List<Fabricateur.Lunette> produireBatch(List<Fabricateur.TypeLunette> batch) {
+        configurerFabricateur(batch);
+        return fabriquer(batch);
+    }
+
+    private void configurerFabricateur(List<Fabricateur.TypeLunette> batch) {
+        Fabricateur.TypeLunette[] types = batch.toArray(new Fabricateur.TypeLunette[0]);
         try {
             fabricateur.configurer(types);
         } catch (Exception e) {
@@ -61,10 +79,9 @@ public final class UsineImpl implements Usine {
         }
     }
 
-    // lance la fabrication séquentielle de chaque lunette demandée
-    private List<Fabricateur.Lunette> fabriquer(List<Fabricateur.TypeLunette> aFabriquer) {
-        List<Fabricateur.Lunette> resultat = new ArrayList<>(aFabriquer.size());
-        for (Fabricateur.TypeLunette type : aFabriquer) {
+    private List<Fabricateur.Lunette> fabriquer(List<Fabricateur.TypeLunette> batch) {
+        List<Fabricateur.Lunette> resultat = new ArrayList<>(batch.size());
+        for (Fabricateur.TypeLunette type : batch) {
             try {
                 resultat.add(fabricateur.fabriquer(type));
             } catch (IllegalArgumentException e) {

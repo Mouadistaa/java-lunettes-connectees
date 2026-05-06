@@ -77,12 +77,16 @@ class UsineImplTest {
     }
 
     @Test
-    void commandeDepassantLaCapaciteEstRejetee() {
-        // capacité 3, commande de 4 lunettes : doit échouer pour l'instant
+    void commandeDepassantLaCapaciteEstDecoupeeEnBatchs() {
+        // capacité 3, commande de 4 lunettes : doit fonctionner via 2 batchs (3+1)
         Usine usine = new UsineImpl(new FakeFabricateur(3));
 
-        assertThrows(UsineException.class, () -> usine.produire(
-                Map.of(Fabricateur.TypeLunette.BANANA, 4)));
+        List<Fabricateur.Lunette> resultat = usine.produire(
+                Map.of(Fabricateur.TypeLunette.BANANA, 4));
+
+        assertEquals(4, resultat.size());
+        assertTrue(resultat.stream()
+                .allMatch(l -> l.type == Fabricateur.TypeLunette.BANANA));
     }
 
     @Test
