@@ -6,10 +6,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Contrat pour une usine capable de produire des lunettes
- * à partir d'une commande agrégée par type.
+ * Contrat pour une usine capable de produire des lunettes à partir
+ * d'une commande agrégée par type.
  */
-public interface Usine {
+public interface Usine extends AutoCloseable {
 
     /**
      * Lance la production de lunettes. Chaque entrée de la Map
@@ -22,4 +22,8 @@ public interface Usine {
      *         le mécanisme de fabrication échoue
      */
     List<Fabricateur.Lunette> produire(final Map<Fabricateur.TypeLunette, Integer> typesLunettes);
+
+    // libère les ressources détenues par l'Usine (pool de threads, etc.).
+    @Override
+    void close();
 }

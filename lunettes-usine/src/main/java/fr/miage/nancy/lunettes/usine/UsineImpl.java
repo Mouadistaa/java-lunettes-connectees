@@ -6,6 +6,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Implémentation de référence de l'usine, s'appuyant sur le
@@ -14,9 +19,11 @@ import java.util.Objects;
 public final class UsineImpl implements Usine {
 
     private final Fabricateur fabricateur;
+    private final ExecutorService executor;
 
     public UsineImpl(Fabricateur fabricateur) {
         this.fabricateur = Objects.requireNonNull(fabricateur, "fabricateur ne peut pas être null");
+        this.executor = Executors.newFixedThreadPool(fabricateur.getCapacity());
     }
 
     @Override
@@ -31,7 +38,19 @@ public final class UsineImpl implements Usine {
         return produireParBatch(aFabriquer);
     }
 
-    // aplatit la commande agrégée en une liste de types individuels
+    @Override
+    public void close() {
+        executor.shutdown();
+        try {
+            if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+    }
+
     private List<Fabricateur.TypeLunette> aplatir(Map<Fabricateur.TypeLunette, Integer> typesLunettes) {
         List<Fabricateur.TypeLunette> resultat = new ArrayList<>();
         for (Map.Entry<Fabricateur.TypeLunette, Integer> entry : typesLunettes.entrySet()) {
@@ -49,17 +68,19 @@ public final class UsineImpl implements Usine {
      * séquentiellement.
      */
     private List<Fabricateur.Lunette> produireParBatch(List<Fabricateur.TypeLunette> aFabriquer) {
-        int capacite = fabricateur.getCapacity();
-        List<Fabricateur.Lunette> resultat = new ArrayList<>(aFabriquer.size());
+    int capacite = fabricateur.getCapacity();
+    List<Fabricateur.Lunette> resultat = new ArrayList<>(aFabriquer.size());
 
-        for (int debut = 0; debut < aFabriquer.size(); debut += capacite) {
-            int fin = Math.min(debut + capacite, aFabriquer.size());
-            List<Fabricateur.TypeLunette> batch = aFabriquer.subList(debut, fin);
+    for (int debut = 0; debut < aFabriquer.size(); debut += capacite) {
+        int fin = Math.min(debut + capacite, aFabriquer.size());
+        List<Fabricateur.TypeLunette> batch = aFabriquer.subList(debut, fin);
+        synchronized (fabricateur) {
             resultat.addAll(produireBatch(batch));
         }
-
-        return resultat;
     }
+
+    return resultat;
+}
 
     /**
      * Configure le fabricateur avec les emplacements du batch et
@@ -67,7 +88,7 @@ public final class UsineImpl implements Usine {
      */
     private List<Fabricateur.Lunette> produireBatch(List<Fabricateur.TypeLunette> batch) {
         configurerFabricateur(batch);
-        return fabriquer(batch);
+        return fabriquerEnParallele(batch);
     }
 
     private void configurerFabricateur(List<Fabricateur.TypeLunette> batch) {
@@ -79,17 +100,36 @@ public final class UsineImpl implements Usine {
         }
     }
 
-    private List<Fabricateur.Lunette> fabriquer(List<Fabricateur.TypeLunette> batch) {
-        List<Fabricateur.Lunette> resultat = new ArrayList<>(batch.size());
+    /**
+     * Soumet une tâche de fabrication par lunette du batch au pool de
+     * threads, puis attend la complétion de toutes les tâches avant de
+     * retourner les résultats agrégés. Si une tâche lève une exception,
+     * elle est wrappée dans une UsineException.
+     */
+    private List<Fabricateur.Lunette> fabriquerEnParallele(List<Fabricateur.TypeLunette> batch) {
+        List<Future<Fabricateur.Lunette>> futures = new ArrayList<>(batch.size());
         for (Fabricateur.TypeLunette type : batch) {
+            futures.add(executor.submit(() -> fabricateur.fabriquer(type)));
+        }
+
+        List<Fabricateur.Lunette> resultat = new ArrayList<>(batch.size());
+        for (Future<Fabricateur.Lunette> future : futures) {
             try {
-                resultat.add(fabricateur.fabriquer(type));
-            } catch (IllegalArgumentException e) {
-                throw new UsineException(
-                        "le fabricateur a refusé de produire un " + type
-                                + " (emplacement non configuré ?)", e);
-            } catch (IllegalStateException e) {
-                throw new UsineException("capacité du fabricateur dépassée", e);
+                resultat.add(future.get());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new UsineException("fabrication interrompue", e);
+            } catch (ExecutionException e) {
+                Throwable cause = e.getCause();
+                if (cause instanceof IllegalArgumentException) {
+                    throw new UsineException(
+                            "le fabricateur a refusé une fabrication "
+                                    + "(emplacement non configuré ?)", cause);
+                }
+                if (cause instanceof IllegalStateException) {
+                    throw new UsineException("capacité du fabricateur dépassée", cause);
+                }
+                throw new UsineException("erreur inattendue pendant la fabrication", cause);
             }
         }
         return resultat;
