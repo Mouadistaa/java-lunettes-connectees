@@ -5,6 +5,9 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
 
@@ -13,6 +16,8 @@ import fr.miage.nancy.lunettes.events.MalformedPayloadException;
 import fr.miage.nancy.lunettes.events.TypeLunette;
 
 public class ServeurMain {
+    
+    private static final Logger logger = LoggerFactory.getLogger(ServeurMain.class);
     public static void main(String[] args) {
         
         Mqtt5AsyncClient client = creerClient();
@@ -24,7 +29,7 @@ public class ServeurMain {
             Thread.sleep(Long.MAX_VALUE);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            System.out.println("Arrêt du serveur.");
+            logger.info("Arrêt du serveur.");
         }
     }
 
@@ -40,9 +45,9 @@ public class ServeurMain {
         client.connect()
                 .whenComplete((connAck, throwable) -> {
                     if (throwable != null) {
-                        System.err.println("Erreur de connexion au broker MQTT : " + throwable.getMessage());
+                        logger.error("Erreur de connexion", throwable);
                     } else {
-                        System.out.println("✅ Connecté avec succès au broker Mosquitto !");
+                        logger.info("✅ Connecté avec succès au broker Mosquitto !");
                         // 4. Écouter sur orders/+
                         client.subscribeWith()
                         .topicFilter("orders/+")
@@ -51,7 +56,7 @@ public class ServeurMain {
                             String topic = publish.getTopic().toString();
                             try {
                                 Map<TypeLunette, Integer> commande = Deserializer.deserializeCommandeLignes(payloadBytes);
-                                System.out.println("📦 Nouvelle commande reçue sur [" + topic + "] : " + commande);
+                                logger.info("📦 Nouvelle commande reçue sur [" + topic + "] : " + commande);
                                 Deserializer.deserializeText(payloadBytes);
                             } catch (MalformedPayloadException exception) {
                                 String[] parts = topic.split("/");
@@ -62,19 +67,19 @@ public class ServeurMain {
                                             .topic("orders/" + uuid + "/cancelled")
                                             .payload(errorMessage.getBytes(java.nio.charset.StandardCharsets.UTF_8))
                                             .send();
-                                    System.err.println("❌ Commande annulée (" + uuid + ") : " + exception.getMessage());
+                                    logger.error("❌ Commande annulée (" + uuid + ") : " + exception.getMessage());
                                 }
                             }
                             catch (Exception e) {
-                                System.err.println("❌ Impossible de désérialiser la commande : " + e.getMessage());
+                                logger.error("❌ Impossible de désérialiser la commande : " + e.getMessage());
                             }
                         })
                         .send()
                         .whenComplete((subAck, subThrowable) -> {
                             if (subThrowable != null) {
-                                System.err.println("Erreur de souscription : " + subThrowable.getMessage());
+                                logger.error("Erreur de souscription : " + subThrowable.getMessage());
                             } else {
-                                System.out.println("📡 En écoute sur le topic 'orders/+'...");
+                                logger.info("📡 En écoute sur le topic 'orders/+'...");
                             }
                         });
                     }
