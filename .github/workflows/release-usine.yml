@@ -41,7 +41,10 @@ jobs:
             </server>
           </servers></settings>' > ~/.m2/settings.xml
 
+      - name: Build des dépendances de l'Usine
+        run: mvn -B -pl lunettes-usine -am install
+
       - name: Publication de l'Usine
-        run: mvn -B -pl lunettes-usine -am deploy
+        run: mvn -B -pl lunettes-usine deploy
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
