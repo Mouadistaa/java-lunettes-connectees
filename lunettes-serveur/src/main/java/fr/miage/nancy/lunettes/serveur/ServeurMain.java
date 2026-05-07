@@ -1,9 +1,13 @@
 package fr.miage.nancy.lunettes.serveur;
 
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,17 +15,13 @@ import org.slf4j.LoggerFactory;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
 
+import bernard_flou.Fabricateur;
 import fr.miage.nancy.lunettes.events.Deserializer;
 import fr.miage.nancy.lunettes.events.MalformedPayloadException;
 import fr.miage.nancy.lunettes.events.TypeLunette;
+import fr.miage.nancy.lunettes.usine.TypeMapper;
 import fr.miage.nancy.lunettes.usine.Usine;
 import fr.miage.nancy.lunettes.usine.UsineImpl;
-import fr.miage.nancy.lunettes.usine.TypeMapper;
-import bernard_flou.Fabricateur;
-import java.util.HashMap;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class ServeurMain {
     
@@ -90,6 +90,23 @@ public class ServeurMain {
                                             
                                             List<Fabricateur.Lunette> lunettes = usine.produire(fabCommande);
                                             logger.info("✅ Fabrication terminée pour la commande (" + uuid + ")");
+                                            
+                                            // 4.3.1 Mettre à jour le statut
+                                            client.publishWith()
+                                                    .topic("orders/" + uuid + "/status")
+                                                    .payload("processed".getBytes(java.nio.charset.StandardCharsets.UTF_8))
+                                                    .send();
+                                                    
+                                            // 4.3.2 Livrer les numéros de série
+                                            StringBuilder payloadBuilder = new StringBuilder();
+                                            for (Fabricateur.Lunette lunette : lunettes) {
+                                                payloadBuilder.append(lunette.type.name()).append(";").append(lunette.serial).append("\n");
+                                            }
+                                            
+                                            client.publishWith()
+                                                    .topic("orders/" + uuid + "/delivery")
+                                                    .payload(payloadBuilder.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8))
+                                                    .send();
                                             
                                         } catch (Exception e) {
                                             String errorMessage = e.getMessage() != null ? e.getMessage() : "Erreur inconnue";
