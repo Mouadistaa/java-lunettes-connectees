@@ -1,8 +1,10 @@
 package fr.miage.nancy.lunettes.serveur;
 
-import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
-import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient;
 import java.util.UUID;
+
+import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient;
+import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
+
 
 public class MiniMainTest {
     public static void main(String[] args) throws InterruptedException {
@@ -42,6 +44,6 @@ public class MiniMainTest {
               .send();
 
         // Bloquer le main pour laisser le thread async écouter
-        Thread.sleep(100000); 
+        // Thread.sleep(100000); 
     }
 }
