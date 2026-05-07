@@ -151,6 +151,9 @@ public class ServeurMain {
                                 logger.info("📡 En écoute sur le topic 'orders/+'...");
                             }
                         });
+
+                        // 5. Écouter sur serials/+/check
+                        ecouterSerials(client);
                     }
                 });
     }
@@ -193,5 +196,34 @@ public class ServeurMain {
                 .buildAsync();
         
         return client;
+    }
+
+    public static void ecouterSerials(Mqtt5AsyncClient client) {
+        client.subscribeWith()
+                        .topicFilter("serials/+/check")
+                        .callback(publish -> {
+                            String topic = publish.getTopic().toString();
+                            String[] parts = topic.split("/");
+                            if (parts.length >= 3) {
+                                String numero = parts[1];
+                                logger.info("🔍 Demande de vérification reçue pour le numéro : " + numero);
+                                
+                                Fabricateur.TypeLunette type = Fabricateur.validateSerial(numero);
+                                String response = (type != null) ? type.name() : "INVALID";
+                                
+                                client.publishWith()
+                                        .topic("serials/" + numero)
+                                        .payload(response.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+                                        .send();
+                            }
+                        })
+                        .send()
+                        .whenComplete((subAck, subThrowable) -> {
+                            if (subThrowable != null) {
+                                logger.error("Erreur de souscription (serials) : " + subThrowable.getMessage());
+                            } else {
+                                logger.info("📡 En écoute sur le topic 'serials/+/check'...");
+                            }
+                        });
     }
 }
