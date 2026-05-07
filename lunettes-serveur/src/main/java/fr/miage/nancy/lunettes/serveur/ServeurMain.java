@@ -52,105 +52,7 @@ public class ServeurMain {
                     } else {
                         logger.info("✅ Connecté avec succès au broker Mosquitto !");
                         // 4. Écouter sur orders/+
-                        client.subscribeWith()
-                        .topicFilter("orders/+")
-                        .callback(publish -> {
-                            byte[] payloadBytes = publish.getPayloadAsBytes();
-                            String topic = publish.getTopic().toString();
-                            try {
-                                Map<TypeLunette, Integer> commande = Deserializer.deserializeCommandeLignes(payloadBytes);
-                                logger.info("📦 Nouvelle commande reçue sur [" + topic + "] : " + commande);
-                                Deserializer.deserializeText(payloadBytes);
-                                
-                                String[] parts = topic.split("/");
-                                if (parts.length >= 2) {
-                                    String uuid = parts[1];
-                                    
-                                    //4.1 Valider la commande
-                                    client.publishWith()
-                                            .topic("orders/" + uuid + "/validated")
-                                            .payload(new byte[0])
-                                            .send();
-                                            
-                                    //4.2 Mettre à jour le statut
-                                    client.publishWith()
-                                            .topic("orders/" + uuid + "/status")
-                                            .payload("processing".getBytes(java.nio.charset.StandardCharsets.UTF_8))
-                                            .send();
-                                    
-                                    logger.info("✅ Commande validée et en cours de traitement (" + uuid + ")");
-
-                                    //4.3 Appeler l'Usine (Fabrication) de manière asynchrone
-                                    executorService.submit(() -> {
-                                        try {
-                                            Map<Fabricateur.TypeLunette, Integer> fabCommande = new HashMap<>();
-                                            for (Map.Entry<TypeLunette, Integer> entry : commande.entrySet()) {
-                                                fabCommande.put(TypeMapper.toFabricateur(entry.getKey()), entry.getValue());
-                                            }
-                                            
-                                            List<Fabricateur.Lunette> lunettes = usine.produire(fabCommande);
-                                            logger.info("✅ Fabrication terminée pour la commande (" + uuid + ")");
-                                            
-                                            // 4.3.1 Mettre à jour le statut
-                                            client.publishWith()
-                                                    .topic("orders/" + uuid + "/status")
-                                                    .payload("processed".getBytes(java.nio.charset.StandardCharsets.UTF_8))
-                                                    .send();
-                                                    
-                                            // 4.3.2 Livrer les numéros de série
-                                            StringBuilder payloadBuilder = new StringBuilder();
-                                            for (Fabricateur.Lunette lunette : lunettes) {
-                                                payloadBuilder.append(lunette.type.name()).append(";").append(lunette.serial).append("\n");
-                                            }
-                                            
-                                            client.publishWith()
-                                                    .topic("orders/" + uuid + "/delivery")
-                                                    .payload(payloadBuilder.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8))
-                                                    .send();
-                                            
-                                        } catch (Exception e) {
-                                            String errorMessage = e.getMessage() != null ? e.getMessage() : "Erreur inconnue";
-                                            client.publishWith()
-                                                    .topic("orders/" + uuid + "/error")
-                                                    .payload(errorMessage.getBytes(java.nio.charset.StandardCharsets.UTF_8))
-                                                    .send();
-                                            logger.error("❌ Erreur lors de la fabrication de la commande (" + uuid + ")", e);
-                                        }
-                                    });
-                                }
-                            } catch (MalformedPayloadException exception) {
-                                String[] parts = topic.split("/");
-                                if (parts.length >= 2) {
-                                    String uuid = parts[1];
-                                    String errorMessage = "Erreur de format : " + exception.getMessage();
-                                    client.publishWith()
-                                            .topic("orders/" + uuid + "/cancelled")
-                                            .payload(errorMessage.getBytes(java.nio.charset.StandardCharsets.UTF_8))
-                                            .send();
-                                    logger.error("❌ Commande annulée (" + uuid + ") : " + exception.getMessage());
-                                }
-                            }
-                            catch (Exception e) {
-                                String[] parts = topic.split("/");
-                                if (parts.length >= 2) {
-                                    String uuid = parts[1];
-                                    String errorMessage = "Erreur de format : " + e.getMessage();
-                                    client.publishWith()
-                                            .topic("orders/" + uuid + "/cancelled")
-                                            .payload(errorMessage.getBytes(java.nio.charset.StandardCharsets.UTF_8))
-                                            .send();
-                                }
-                                logger.error("❌ Impossible de désérialiser la commande : " + e.getMessage());
-                            }
-                        })
-                        .send()
-                        .whenComplete((subAck, subThrowable) -> {
-                            if (subThrowable != null) {
-                                logger.error("Erreur de souscription : " + subThrowable.getMessage());
-                            } else {
-                                logger.info("📡 En écoute sur le topic 'orders/+'...");
-                            }
-                        });
+                        ecouterCommandes(client);
 
                         // 5. Écouter sur serials/+/check
                         ecouterSerials(client);
@@ -225,5 +127,111 @@ public class ServeurMain {
                                 logger.info("📡 En écoute sur le topic 'serials/+/check'...");
                             }
                         });
+    }
+
+    public static void traiterCommande(Mqtt5AsyncClient client, Map<TypeLunette, Integer> commande, String uuid) {
+        executorService.submit(() -> {
+            try {
+                Map<Fabricateur.TypeLunette, Integer> fabCommande = new HashMap<>();
+                for (Map.Entry<TypeLunette, Integer> entry : commande.entrySet()) {
+                    fabCommande.put(TypeMapper.toFabricateur(entry.getKey()), entry.getValue());
+                }
+
+                List<Fabricateur.Lunette> lunettes = usine.produire(fabCommande);
+                logger.info("✅ Fabrication terminée pour la commande (" + uuid + ")");
+
+                // 4.3.1 Mettre à jour le statut
+                client.publishWith()
+                        .topic("orders/" + uuid + "/status")
+                        .payload("processed".getBytes(java.nio.charset.StandardCharsets.UTF_8))
+                        .send();
+
+                // 4.3.2 Livrer les numéros de série
+                StringBuilder payloadBuilder = new StringBuilder();
+                for (Fabricateur.Lunette lunette : lunettes) {
+                    payloadBuilder.append(lunette.type.name()).append(";").append(lunette.serial).append("\n");
+                }
+
+                client.publishWith()
+                        .topic("orders/" + uuid + "/delivery")
+                        .payload(payloadBuilder.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8))
+                        .send();
+
+            } catch (Exception e) {
+                String errorMessage = e.getMessage() != null ? e.getMessage() : "Erreur inconnue";
+                client.publishWith()
+                        .topic("orders/" + uuid + "/error")
+                        .payload(errorMessage.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+                        .send();
+                logger.error("❌ Erreur lors de la fabrication de la commande (" + uuid + ")", e);
+            }
+        });
+    }
+
+    private static void ecouterCommandes(Mqtt5AsyncClient client) {
+        client.subscribeWith()
+            .topicFilter("orders/+")
+            .callback(publish -> {
+                byte[] payloadBytes = publish.getPayloadAsBytes();
+                String topic = publish.getTopic().toString();
+                try {
+                    Map<TypeLunette, Integer> commande = Deserializer.deserializeCommandeLignes(payloadBytes);
+                    logger.info("📦 Nouvelle commande reçue sur [" + topic + "] : " + commande);
+                    Deserializer.deserializeText(payloadBytes);
+                    
+                    String[] parts = topic.split("/");
+                    if (parts.length >= 2) {
+                        String uuid = parts[1];
+                        
+                        //4.1 Valider la commande
+                        client.publishWith()
+                                .topic("orders/" + uuid + "/validated")
+                                .payload(new byte[0])
+                                .send();
+                                
+                        //4.2 Mettre à jour le statut
+                        client.publishWith()
+                                .topic("orders/" + uuid + "/status")
+                                .payload("processing".getBytes(java.nio.charset.StandardCharsets.UTF_8))
+                                .send();
+                        
+                        logger.info("✅ Commande validée et en cours de traitement (" + uuid + ")");
+
+                        //4.3 Appeler l'Usine (Fabrication) de manière asynchrone
+                        traiterCommande(client, commande, uuid);
+                    }
+                } catch (MalformedPayloadException exception) {
+                    String[] parts = topic.split("/");
+                    if (parts.length >= 2) {
+                        String uuid = parts[1];
+                        String errorMessage = "Erreur de format : " + exception.getMessage();
+                        client.publishWith()
+                                .topic("orders/" + uuid + "/cancelled")
+                                .payload(errorMessage.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+                                .send();
+                        logger.error("❌ Commande annulée (" + uuid + ") : " + exception.getMessage());
+                    }
+                }
+                catch (Exception e) {
+                    String[] parts = topic.split("/");
+                    if (parts.length >= 2) {
+                        String uuid = parts[1];
+                        String errorMessage = "Erreur de format : " + e.getMessage();
+                        client.publishWith()
+                                .topic("orders/" + uuid + "/cancelled")
+                                .payload(errorMessage.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+                                .send();
+                    }
+                    logger.error("❌ Impossible de désérialiser la commande : " + e.getMessage());
+                }
+            })
+            .send()
+            .whenComplete((subAck, subThrowable) -> {
+                if (subThrowable != null) {
+                    logger.error("Erreur de souscription : " + subThrowable.getMessage());
+                } else {
+                    logger.info("📡 En écoute sur le topic 'orders/+'...");
+                }
+            });
     }
 }
