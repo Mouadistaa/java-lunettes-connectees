@@ -29,6 +29,12 @@ public class ServeurMain {
     private static final ExecutorService executorService = Executors.newCachedThreadPool();
     private static final Usine usine = new UsineImpl(new Fabricateur());
     
+    /**
+     * Point d'entrée principal du serveur.
+     * Crée le client MQTT et lance la connexion et l'écoute des messages.
+     * 
+     * @param args Les arguments de la ligne de commande (non utilisés).
+     */
     public static void main(String[] args) {
         
         Mqtt5AsyncClient client = creerClient();
@@ -100,35 +106,49 @@ public class ServeurMain {
         return client;
     }
 
+    /**
+     * S'abonne au topic "serials/+/check" pour vérifier la validité des numéros de série.
+     * Envoie la réponse sur le topic "serials/<numero>".
+     * 
+     * @param client Le client MQTT asynchrone utilisé pour s'abonner et publier.
+     */
     public static void ecouterSerials(Mqtt5AsyncClient client) {
         client.subscribeWith()
-                        .topicFilter("serials/+/check")
-                        .callback(publish -> {
-                            String topic = publish.getTopic().toString();
-                            String[] parts = topic.split("/");
-                            if (parts.length >= 3) {
-                                String numero = parts[1];
-                                logger.info("🔍 Demande de vérification reçue pour le numéro : " + numero);
-                                
-                                Fabricateur.TypeLunette type = Fabricateur.validateSerial(numero);
-                                String response = (type != null) ? type.name() : "INVALID";
-                                
-                                client.publishWith()
-                                        .topic("serials/" + numero)
-                                        .payload(response.getBytes(java.nio.charset.StandardCharsets.UTF_8))
-                                        .send();
-                            }
-                        })
-                        .send()
-                        .whenComplete((subAck, subThrowable) -> {
-                            if (subThrowable != null) {
-                                logger.error("Erreur de souscription (serials) : " + subThrowable.getMessage());
-                            } else {
-                                logger.info("📡 En écoute sur le topic 'serials/+/check'...");
-                            }
-                        });
+            .topicFilter("serials/+/check")
+            .callback(publish -> {
+                String topic = publish.getTopic().toString();
+                String[] parts = topic.split("/");
+                if (parts.length >= 3) {
+                    String numero = parts[1];
+                    logger.info("🔍 Demande de vérification reçue pour le numéro : " + numero);
+                    
+                    Fabricateur.TypeLunette type = Fabricateur.validateSerial(numero);
+                    String response = (type != null) ? type.name() : "INVALID";
+                    
+                    client.publishWith()
+                            .topic("serials/" + numero)
+                            .payload(response.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+                            .send();
+                }
+            })
+            .send()
+            .whenComplete((subAck, subThrowable) -> {
+                if (subThrowable != null) {
+                    logger.error("Erreur de souscription (serials) : " + subThrowable.getMessage());
+                } else {
+                    logger.info("📡 En écoute sur le topic 'serials/+/check'...");
+                }
+            });
     }
 
+    /**
+     * Traite de manière asynchrone une commande de lunettes validée.
+     * Lance la fabrication via l'usine et publie les résultats ou les erreurs sur les topics correspondants.
+     * 
+     * @param client Le client MQTT asynchrone.
+     * @param commande La commande contenant les types et quantités de lunettes.
+     * @param uuid L'identifiant unique de la commande.
+     */
     public static void traiterCommande(Mqtt5AsyncClient client, Map<TypeLunette, Integer> commande, String uuid) {
         executorService.submit(() -> {
             try {
@@ -168,6 +188,12 @@ public class ServeurMain {
         });
     }
 
+    /**
+     * S'abonne au topic "orders/+" pour recevoir, valider et traiter les nouvelles commandes.
+     * Publie le statut de traitement et gère les erreurs de format (annulation).
+     * 
+     * @param client Le client MQTT asynchrone.
+     */
     private static void ecouterCommandes(Mqtt5AsyncClient client) {
         client.subscribeWith()
             .topicFilter("orders/+")
