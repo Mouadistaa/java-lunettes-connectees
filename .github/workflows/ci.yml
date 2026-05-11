@@ -1,5 +1,4 @@
-﻿name: CI
-
+name: CI
 on:
   pull_request:
     branches: [develop, main]
@@ -7,7 +6,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout du code
         uses: actions/checkout@v4
@@ -28,5 +26,29 @@ jobs:
             <password>${{ secrets.PROF_TOKEN }}</password>
           </server></servers></settings>' > ~/.m2/settings.xml
 
+      - name: Démarrer le broker MQTT
+        run: docker compose up -d
+
+      - name: Attendre que le broker soit prêt
+        run: |
+          for i in {1..30}; do
+            if nc -z localhost 1883; then
+              echo "Broker MQTT UP après ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Timeout d'attente du broker MQTT"
+          docker logs lunettes-mosquitto
+          exit 1
+
       - name: Build et tests
         run: mvn -B clean verify
+
+      - name: Logs du broker (en cas d'échec)
+        if: failure()
+        run: docker logs lunettes-mosquitto
+
+      - name: Arrêter le broker MQTT
+        if: always()
+        run: docker compose down
