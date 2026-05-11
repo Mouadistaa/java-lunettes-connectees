@@ -23,11 +23,17 @@ import fr.miage.nancy.lunettes.usine.TypeMapper;
 import fr.miage.nancy.lunettes.usine.Usine;
 import fr.miage.nancy.lunettes.usine.UsineImpl;
 
+/**
+ * Classe principale du module lunettes-serveur.
+ * Elle initialise la connexion au broker MQTT, instancie l'usine de fabrication, et s'abonne aux topics de commandes et de vérification des numéros de série.
+ * Les traitements sont effectués de manière asynchrone via des threads.
+ */
 public class ServeurMain {
     
     private static final Logger logger = LoggerFactory.getLogger(ServeurMain.class);
-    private static final ExecutorService executorService = Executors.newCachedThreadPool();
-    private static final Usine usine = new UsineImpl(new Fabricateur());
+    private static final Fabricateur fabricateur = new Fabricateur();
+    private static final Usine usine = new UsineImpl(fabricateur);
+    private static final ExecutorService executorService = Executors.newFixedThreadPool(fabricateur.getCapacity());
     
     /**
      * Point d'entrée principal du serveur.
@@ -39,16 +45,28 @@ public class ServeurMain {
         
         Mqtt5AsyncClient client = creerClient();
 
+        //SERT A ARRETER LE PROGRAMME VIA CTRL + C
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            logger.info("🛑 Arrêt du serveur...");
+            try {
+                usine.close();
+            } catch (Exception e) {
+                logger.error("Erreur lors de la fermeture de l'usine", e);
+            }
+            executorService.shutdown();
+            if (client != null) {
+                client.disconnect().join();
+            }
+        }));
+
         clientConnect(client);
     }
 
     /**
      * Connecte le client MQTT asynchrone au broker et s'abonne au topic "orders/+".
-     * Lors de la réception d'un message, la méthode désérialise la commande et traite 
-     * les éventuelles erreurs de format en publiant un message d'annulation.
-     * 
+     * Lors de la réception d'un message, la méthode désérialise la commande et traite les éventuelles erreurs de format en publiant un message d'annulation.
      * @param client Le client MQTT asynchrone à connecter et configurer.
-     */
+        */
     public static void clientConnect(Mqtt5AsyncClient client) {
         // 3. Se connecter au broker
         client.connect()
@@ -70,11 +88,8 @@ public class ServeurMain {
 
 
     /**
-     * Crée et configure un client MQTT asynchrone en chargeant les paramètres de
-     * connexion depuis le fichier application.properties.
-     * 
-     * @return Le client MQTT asynchrone configuré, ou null en cas d'erreur de lecture
-     *         des propriétés de configuration.
+     * Crée et configure un client MQTT asynchrone en chargeant les paramètres de connexion depuis le fichier application.properties.
+     * @return Le client MQTT asynchrone configuré, ou null en cas d'erreur de lecture des propriétés de configuration.
      */
     public static Mqtt5AsyncClient creerClient() {
        // 1. Charger les propriétés depuis le fichier application.properties
@@ -152,6 +167,20 @@ public class ServeurMain {
     public static void traiterCommande(Mqtt5AsyncClient client, Map<TypeLunette, Integer> commande, String uuid) {
         executorService.submit(() -> {
             try {
+                // 4.1 Valider la commande
+                client.publishWith()
+                        .topic("orders/" + uuid + "/validated")
+                        .payload(new byte[0])
+                        .send();
+                        
+                // 4.2 Mettre à jour le statut
+                client.publishWith()
+                        .topic("orders/" + uuid + "/status")
+                        .payload("processing".getBytes(java.nio.charset.StandardCharsets.UTF_8))
+                        .send();
+                
+                logger.info("✅ Commande validée et en cours de traitement (" + uuid + ")");
+
                 Map<Fabricateur.TypeLunette, Integer> fabCommande = new HashMap<>();
                 for (Map.Entry<TypeLunette, Integer> entry : commande.entrySet()) {
                     fabCommande.put(TypeMapper.toFabricateur(entry.getKey()), entry.getValue());
@@ -177,7 +206,7 @@ public class ServeurMain {
                         .payload(payloadBuilder.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8))
                         .send();
 
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 String errorMessage = e.getMessage() != null ? e.getMessage() : "Erreur inconnue";
                 client.publishWith()
                         .topic("orders/" + uuid + "/error")
@@ -209,20 +238,6 @@ public class ServeurMain {
                     if (parts.length >= 2) {
                         String uuid = parts[1];
                         
-                        //4.1 Valider la commande
-                        client.publishWith()
-                                .topic("orders/" + uuid + "/validated")
-                                .payload(new byte[0])
-                                .send();
-                                
-                        //4.2 Mettre à jour le statut
-                        client.publishWith()
-                                .topic("orders/" + uuid + "/status")
-                                .payload("processing".getBytes(java.nio.charset.StandardCharsets.UTF_8))
-                                .send();
-                        
-                        logger.info("✅ Commande validée et en cours de traitement (" + uuid + ")");
-
                         //4.3 Appeler l'Usine (Fabrication) de manière asynchrone
                         traiterCommande(client, commande, uuid);
                     }
