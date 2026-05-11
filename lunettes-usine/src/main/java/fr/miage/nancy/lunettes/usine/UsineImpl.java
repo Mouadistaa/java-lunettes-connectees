@@ -21,6 +21,13 @@ public final class UsineImpl implements Usine {
     private final Fabricateur fabricateur;
     private final ExecutorService executor;
 
+    /**
+     * Verrou interne pour sérialiser les blocs configurer+fabriquer entre
+     * commandes concurrentes. On ne peut pas verrouiller sur le fabricateur
+     * lui-même : il synchronise déjà ses propres méthodes en interne
+     */
+    private final Object batchLock = new Object();
+
     public UsineImpl(Fabricateur fabricateur) {
         this.fabricateur = Objects.requireNonNull(fabricateur, "fabricateur ne peut pas être null");
         this.executor = Executors.newFixedThreadPool(fabricateur.getCapacity());
@@ -68,19 +75,19 @@ public final class UsineImpl implements Usine {
      * séquentiellement.
      */
     private List<Fabricateur.Lunette> produireParBatch(List<Fabricateur.TypeLunette> aFabriquer) {
-    int capacite = fabricateur.getCapacity();
-    List<Fabricateur.Lunette> resultat = new ArrayList<>(aFabriquer.size());
+        int capacite = fabricateur.getCapacity();
+        List<Fabricateur.Lunette> resultat = new ArrayList<>(aFabriquer.size());
 
-    for (int debut = 0; debut < aFabriquer.size(); debut += capacite) {
-        int fin = Math.min(debut + capacite, aFabriquer.size());
-        List<Fabricateur.TypeLunette> batch = aFabriquer.subList(debut, fin);
-        synchronized (fabricateur) {
-            resultat.addAll(produireBatch(batch));
+        for (int debut = 0; debut < aFabriquer.size(); debut += capacite) {
+            int fin = Math.min(debut + capacite, aFabriquer.size());
+            List<Fabricateur.TypeLunette> batch = aFabriquer.subList(debut, fin);
+            synchronized (batchLock) {                  // ← verrou interne, distinct de fabricateur
+                resultat.addAll(produireBatch(batch));
+            }
         }
-    }
 
-    return resultat;
-}
+        return resultat;
+    }
 
     /**
      * Configure le fabricateur avec les emplacements du batch et
