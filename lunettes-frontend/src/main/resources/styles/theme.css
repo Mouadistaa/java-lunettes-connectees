@@ -1,0 +1,348 @@
+/* ---------- Conteneurs racine ---------- */
+
+.root {
+    -fx-font-family: "Segoe UI", "Helvetica Neue", "Inter", "Arial", sans-serif;
+    -fx-background-color: linear-gradient(to bottom, #fafbfc 0%, #f0f2f5 100%);
+}
+
+.contenu-principal {
+    -fx-padding: 48 64 48 64;
+    -fx-spacing: 24;
+}
+
+/* ---------- Barre de nav haut de page ---------- */
+
+.barre-nav {
+    -fx-background-color: white;
+    -fx-padding: 16 32 16 32;
+    -fx-spacing: 24;
+    -fx-alignment: center-left;
+    -fx-border-color: transparent transparent #e5e7eb transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.logo {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #111111;
+}
+
+.lien-nav {
+    -fx-background-color: transparent;
+    -fx-text-fill: #6b7280;
+    -fx-font-size: 14px;
+    -fx-font-weight: 500;
+    -fx-cursor: hand;
+    -fx-padding: 8 16 8 16;
+}
+
+.lien-nav:hover {
+    -fx-text-fill: #111111;
+}
+
+.lien-nav.actif {
+    -fx-text-fill: #111111;
+    -fx-font-weight: bold;
+}
+
+/* ---------- Typographie ---------- */
+
+.titre-hero {
+    -fx-font-size: 48px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #111111;
+}
+
+.sous-titre-hero {
+    -fx-font-size: 18px;
+    -fx-text-fill: #6b7280;
+    -fx-wrap-text: true;
+}
+
+.titre-section {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #111111;
+}
+
+.label-info {
+    -fx-text-fill: #6b7280;
+    -fx-font-size: 14px;
+}
+
+.label-fort {
+    -fx-text-fill: #111111;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+/* ---------- Boutons ---------- */
+
+.bouton-primaire {
+    -fx-background-color: #111111;
+    -fx-text-fill: white;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-padding: 14 28 14 28;
+    -fx-background-radius: 12;
+    -fx-cursor: hand;
+}
+
+.bouton-primaire:hover {
+    -fx-background-color: #2c2c2c;
+}
+
+.bouton-primaire:disabled {
+    -fx-background-color: #d1d5db;
+    -fx-text-fill: #9ca3af;
+    -fx-cursor: default;
+}
+
+.bouton-secondaire {
+    -fx-background-color: white;
+    -fx-text-fill: #111111;
+    -fx-font-size: 14px;
+    -fx-font-weight: 500;
+    -fx-padding: 12 24 12 24;
+    -fx-background-radius: 12;
+    -fx-border-color: #d1d5db;
+    -fx-border-width: 1;
+    -fx-border-radius: 12;
+    -fx-cursor: hand;
+}
+
+.bouton-secondaire:hover {
+    -fx-background-color: #f9fafb;
+    -fx-border-color: #9ca3af;
+}
+
+.bouton-discret {
+    -fx-background-color: transparent;
+    -fx-text-fill: #4b5563;
+    -fx-font-size: 14px;
+    -fx-padding: 8 16 8 16;
+    -fx-cursor: hand;
+}
+
+.bouton-discret:hover {
+    -fx-text-fill: #111111;
+}
+
+/* ---------- Cards (produits, livraison...) ---------- */
+
+.card {
+    -fx-background-color: white;
+    -fx-background-radius: 16;
+    -fx-border-color: #e5e7eb;
+    -fx-border-radius: 16;
+    -fx-border-width: 1;
+    -fx-padding: 20;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.04), 12, 0, 0, 4);
+}
+
+.card-produit {
+    -fx-background-color: white;
+    -fx-background-radius: 16;
+    -fx-border-color: #e5e7eb;
+    -fx-border-radius: 16;
+    -fx-border-width: 1;
+    -fx-padding: 16;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.04), 12, 0, 0, 4);
+    -fx-cursor: hand;
+}
+
+.card-produit:hover {
+    -fx-border-color: #111111;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.1), 16, 0, 0, 6);
+}
+
+.card-produit-titre {
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #111111;
+}
+
+.card-produit-description {
+    -fx-font-size: 13px;
+    -fx-text-fill: #6b7280;
+    -fx-wrap-text: true;
+}
+
+.card-produit-prix {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #111111;
+}
+
+/* ---------- Badges ---------- */
+
+.badge {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 4 10 4 10;
+    -fx-background-radius: 20;
+    -fx-text-fill: white;
+}
+
+.badge-default {
+    -fx-background-color: #6b7280;
+}
+
+.badge-nouveau {
+    -fx-background-color: #059669;
+}
+
+.badge-promo {
+    -fx-background-color: #dc2626;
+}
+
+.badge-bestseller {
+    -fx-background-color: #d97706;
+}
+
+/* ---------- Champs de saisie ---------- */
+
+.spinner, .text-field {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-border-color: #d1d5db;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+    -fx-font-size: 14px;
+    -fx-padding: 4;
+}
+
+.text-field:focused, .spinner:focused {
+    -fx-border-color: #111111;
+}
+
+.spinner .increment-arrow-button,
+.spinner .decrement-arrow-button {
+    -fx-background-color: #f3f4f6;
+    -fx-background-radius: 0;
+}
+
+.spinner .increment-arrow-button:hover,
+.spinner .decrement-arrow-button:hover {
+    -fx-background-color: #e5e7eb;
+}
+
+/* ---------- Indicateur d'etat de la commande ---------- */
+
+.etat-encours {
+    -fx-padding: 24 32 24 32;
+    -fx-background-color: #f9fafb;
+    -fx-background-radius: 12;
+    -fx-spacing: 12;
+    -fx-alignment: center;
+}
+
+.etat-titre {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #111111;
+}
+
+.etat-detail {
+    -fx-font-size: 14px;
+    -fx-text-fill: #6b7280;
+}
+
+.banniere-succes {
+    -fx-background-color: #ecfdf5;
+    -fx-padding: 16 20 16 20;
+    -fx-background-radius: 10;
+    -fx-border-color: #a7f3d0;
+    -fx-border-width: 1;
+    -fx-border-radius: 10;
+}
+
+.banniere-succes-texte {
+    -fx-text-fill: #065f46;
+    -fx-font-weight: bold;
+}
+
+.banniere-erreur {
+    -fx-background-color: #fef2f2;
+    -fx-padding: 16 20 16 20;
+    -fx-background-radius: 10;
+    -fx-border-color: #fecaca;
+    -fx-border-width: 1;
+    -fx-border-radius: 10;
+}
+
+.banniere-erreur-texte {
+    -fx-text-fill: #991b1b;
+    -fx-font-weight: bold;
+}
+
+.banniere-info {
+    -fx-background-color: #eff6ff;
+    -fx-padding: 16 20 16 20;
+    -fx-background-radius: 10;
+    -fx-border-color: #bfdbfe;
+    -fx-border-width: 1;
+    -fx-border-radius: 10;
+}
+
+.banniere-info-texte {
+    -fx-text-fill: #1e40af;
+    -fx-font-weight: bold;
+}
+
+/* ---------- Liste des lunettes livrees ---------- */
+
+.list-view-livraison {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.list-view-livraison .list-cell {
+    -fx-background-color: white;
+    -fx-padding: 14 20 14 20;
+    -fx-font-family: "Menlo", "Consolas", monospace;
+    -fx-font-size: 13px;
+    -fx-border-color: transparent transparent #f3f4f6 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.list-view-livraison .list-cell:hover {
+    -fx-background-color: #f9fafb;
+}
+
+.list-view-livraison .list-cell:filled:selected {
+    -fx-background-color: #f3f4f6;
+    -fx-text-fill: #111111;
+}
+
+/* ---------- ProgressIndicator ---------- */
+
+.progress-indicator .indicator {
+    -fx-background-color: #111111;
+}
+
+.progress-indicator .percentage {
+    -fx-fill: #111111;
+}
+
+/* ---------- Bouton "Copier" dans la liste des numeros de serie ---------- */
+
+.bouton-copier {
+    -fx-background-color: #f3f4f6;
+    -fx-text-fill: #111111;
+    -fx-font-size: 12px;
+    -fx-font-weight: 500;
+    -fx-padding: 4 12 4 12;
+    -fx-background-radius: 6;
+    -fx-cursor: hand;
+    -fx-border-color: #e5e7eb;
+    -fx-border-width: 1;
+    -fx-border-radius: 6;
+}
+
+.bouton-copier:hover {
+    -fx-background-color: #111111;
+    -fx-text-fill: white;
+    -fx-border-color: #111111;
+}

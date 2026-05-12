@@ -46,6 +46,7 @@
         <module>lunettes-events</module>
         <module>lunettes-usine</module>
         <module>lunettes-serveur</module>
+        <module>lunettes-frontend</module>
     </modules>
 
 </project>
