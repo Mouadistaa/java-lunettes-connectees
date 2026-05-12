@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>fr.miage.nancy.lunettes</groupId>
+        <artifactId>lunettes-connectees</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>lunettes-frontend</artifactId>
+    <packaging>jar</packaging>
+    <name>lunettes-frontend</name>
+    <description>
+        Application JavaFX cliente du projet Lunettes connectees.
+        4 ecrans : accueil, commande, suivi de livraison, verification de numero de serie.
+        Communique avec le backend via MQTT (broker Mosquitto).
+    </description>
+
+    <properties>
+        <!--
+            JavaFX 21 LTS : aligne sur Java 21 du pom parent.
+            On ne depend que des modules reellement utilises pour limiter
+            la taille du fat jar final.
+        -->
+        <javafx.version>21.0.4</javafx.version>
+        <hivemq.client.version>1.3.13</hivemq.client.version>
+        <slf4j.version>2.0.13</slf4j.version>
+        <!--
+            mainClass = Launcher et PAS MainApp.
+            Astuce classique : si on lance directement une classe qui etend Application
+            depuis un fat jar non-modulaire, on se prend "JavaFX runtime components are missing".
+            On contourne avec une classe wrapper qui n'etend rien.
+        -->
+        <main.class>fr.miage.nancy.lunettes.frontend.Launcher</main.class>
+    </properties>
+
+    <dependencies>
+
+        <!-- DTOs partages, Topics MQTT et helpers de serialisation (module de Baptiste) -->
+        <dependency>
+            <groupId>fr.miage.nancy.lunettes</groupId>
+            <artifactId>lunettes-events</artifactId>
+        </dependency>
+
+        <!-- Client MQTT : on garde la meme lib que le serveur pour la coherence d'equipe -->
+        <dependency>
+            <groupId>com.hivemq</groupId>
+            <artifactId>hivemq-mqtt-client</artifactId>
+            <version>${hivemq.client.version}</version>
+        </dependency>
+
+        <!-- JavaFX : modules reellement utilises -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-controls</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-graphics</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
+
+        <!-- Logs : pareil que le serveur pour qu'on parle le meme langage en debug -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+
+        <!-- Tests -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>${project.artifactId}-${project.version}</finalName>
+
+        <plugins>
+
+            <!--
+                Plugin shade : on assemble TOUTES les dependances dans un seul jar
+                executable. C'est ce qui permet de livrer un .jar pret a l'emploi
+                comme le demande le sujet ("un .jar pret a l'emploi").
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <shadedArtifactAttached>false</shadedArtifactAttached>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <transformers>
+                                <!-- Manifest avec la classe Launcher comme point d'entree -->
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>${main.class}</mainClass>
+                                </transformer>
+                                <!-- Fusionne les services SPI (HiveMQ et SLF4J en utilisent) -->
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <!-- Evite "Invalid signature file digest" au lancement du fat jar -->
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <exclude>module-info.class</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--
+                Plugin javafx-maven-plugin : utile en phase de dev pour lancer l'app
+                avec `mvn javafx:run` sans avoir a reconstruire le jar a chaque fois.
+            -->
+            <plugin>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-maven-plugin</artifactId>
+                <version>0.0.8</version>
+                <configuration>
+                    <mainClass>fr.miage.nancy.lunettes.frontend.MainApp</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
