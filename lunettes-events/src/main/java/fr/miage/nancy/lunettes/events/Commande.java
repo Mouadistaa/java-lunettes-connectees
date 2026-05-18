@@ -7,8 +7,16 @@ import java.util.UUID;
 /**
  * Représente une commande de lunettes émise par un client.
  *
- * Une commande est identifiée par un UUID unique et porte la liste
- * des types souhaités avec leur quantité.
+ * <p>Une commande est identifiée par un UUID unique et porte la liste
+ * des types souhaités avec leur quantité. La commande est validée à la
+ * construction selon les règles définies dans le sujet :</p>
+ * <ul>
+ *   <li>la quantité totale doit être strictement positive</li>
+ *   <li>la quantité de chaque type doit être dans [0, 10[</li>
+ * </ul>
+ *
+ * <p>Le respect du contrat sur le type de lunette est garanti par
+ * l'utilisation de l'enum {@link TypeLunette}.</p>
  */
 public record Commande(UUID id, Map<TypeLunette, Integer> lignes) {
 

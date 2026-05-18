@@ -2,7 +2,11 @@ package fr.miage.nancy.lunettes.events;
 
 import java.util.UUID;
 
-// Centralise la construction des topics MQTT du protocole.
+/**
+ * Centralise la construction des topics MQTT du protocole.
+ * Évite que chaque module concatène les chaînes à la main et risque
+ * une divergence (slash en trop, suffixe au pluriel, etc.).
+ */
 public final class Topics {
 
     private Topics() {

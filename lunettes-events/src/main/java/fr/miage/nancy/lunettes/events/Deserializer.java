@@ -6,7 +6,19 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Convertit les payloads MQTT (octets encodés en UTF-8) en DTOs du domaine
+ * Convertit les payloads MQTT (octets encodés en UTF-8) en DTOs du domaine.
+ *
+ * <p>L'id de commande est extrait du topic par l'appelant, jamais
+ * du payload lui-même.</p>
+ *
+ * <p>En cas de payload mal formé, les méthodes lèvent une
+ * {@link MalformedPayloadException} dont le message décrit l'erreur.
+ * L'appelant est responsable de transformer cette exception en
+ * notification {@code cancelled} ou {@code error} sur le topic
+ * approprié.</p>
+ *
+ * @see MqttFormat
+ * @see Serializer
  */
 public final class Deserializer {
 
@@ -14,7 +26,15 @@ public final class Deserializer {
         // classe utilitaire, pas d'instanciation
     }
 
-    // Désérialise les lignes d'une commande depuis un payload au format <TYPE>;<QUANTITE> (une ligne par type)
+    /**
+     * Désérialise les lignes d'une commande depuis un payload au format
+     * {@code <TYPE>;<QUANTITE>} (une ligne par type).
+     *
+     * @return la map des lignes (jamais nulle, jamais vide)
+     * @throws MalformedPayloadException si le payload est vide, contient
+     *         un type inconnu, une quantité non numérique, ou un type
+     *         dupliqué
+     */
     public static Map<TypeLunette, Integer> deserializeCommandeLignes(byte[] payload) {
         String text = new String(payload, MqttFormat.CHARSET);
         if (text.isBlank()) {
@@ -40,7 +60,10 @@ public final class Deserializer {
         return lignes;
     }
 
-    // Désérialise une livraison depuis un payload au format <TYPE>;<NUMERO_SERIE> (une ligne par lunette)
+    /**
+     * Désérialise une livraison depuis un payload au format
+     * {@code <TYPE>;<NUMERO_SERIE>} (une ligne par lunette).
+     */
     public static List<LunetteProduite> deserializeDelivery(byte[] payload) {
         String text = new String(payload, MqttFormat.CHARSET);
         if (text.isBlank()) {

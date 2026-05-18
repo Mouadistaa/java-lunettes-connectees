@@ -5,8 +5,20 @@ import fr.miage.nancy.lunettes.events.TypeLunette;
 
 /**
  * Convertit les types de lunettes entre la représentation utilisée par
- * le module lunettes-events (notre domaine) et celle utilisée
+ * le module {@code lunettes-events} (notre domaine) et celle utilisée
  * par le fabricateur tiers.
+ *
+ * <p>Le mapping est explicite (via un {@code switch}) plutôt qu'implicite
+ * (par alignement de noms via {@code valueOf(name())}). Ce choix est
+ * volontaire :</p>
+ * <ul>
+ *   <li>Si l'enum du fabricateur évolue (renommage, ajout, suppression),
+ *       le compilateur signale immédiatement le problème — alors qu'un
+ *       mapping par nom le manifesterait seulement à l'exécution.</li>
+ *   <li>Le découplage entre nos types et ceux du fabricateur est rendu
+ *       visible dans le code, conformément au principe de mapping
+ *       explicite entre modèles de données indépendants.</li>
+ * </ul>
  */
 public final class TypeMapper {
 
