@@ -13,8 +13,17 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Implémentation de référence de l'usine, s'appuyant sur le
+ * Implémentation de référence de l'{@link Usine}, s'appuyant sur le
  * fabricateur tiers fourni par le sujet.
+ *
+ * <p>Cette première version ne traite que les commandes qui tiennent
+ * dans un seul batch (quantité totale &le; capacité du fabricateur).
+ * Les commandes plus grandes lèvent une {@link UsineException}
+ * explicite. Le découpage multi-batch sera ajouté ultérieurement.</p>
+ *
+ * <p>La fabrication des lunettes au sein d'un batch est actuellement
+ * séquentielle. La parallélisation viendra dans un commit ultérieur,
+ * une fois que le cas single-thread sera couvert par les tests.</p>
  */
 public final class UsineImpl implements Usine {
 

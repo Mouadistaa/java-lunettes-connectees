@@ -8,7 +8,22 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Stub du Fabricateur utilisé dans les tests de l'Usine
+ * Stub du {@link Fabricateur} utilisé dans les tests de l'Usine.
+ *
+ * <p>Ce fake reproduit les contrats observables du vrai fabricateur
+ * (capacité fixe, refus de produire un type non configuré, comptage
+ * des fabrications en cours) sans la latence ({@code Thread.sleep})
+ * ni le non-déterminisme (capacité aléatoire).</p>
+ *
+ * <p>Il s'agit d'une <em>fake implementation</em> écrite à la main
+ * plutôt qu'un mock généré par une librairie : Mockito serait une
+ * dépendance lourde pour ce seul besoin, et un stub explicite est
+ * plus lisible et plus pédagogique.</p>
+ *
+ * <p>Le stub étend la classe concrète {@link Fabricateur} parce que
+ * cette dernière ne dérive pas d'une interface : c'est l'option
+ * standard quand on doit substituer une dépendance externe non
+ * conçue pour le testing.</p>
  */
 class FakeFabricateur extends Fabricateur {
 
