@@ -172,11 +172,6 @@ mvn test
 
 Cette commande compile le projet si nécessaire, puis exécute les tests unitaires présents dans les modules Maven.
 
-## Liens utiles
-
-- Sujet du projet : 
-- Guide d'équipe : 
-- Documentation PDF : 
 
 ## Auteurs
 
